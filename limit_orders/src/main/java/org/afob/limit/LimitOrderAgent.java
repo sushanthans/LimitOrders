@@ -41,7 +41,7 @@ public class LimitOrderAgent implements PriceListener {
     }
 
     //Store orders in List
-    private final List<LimitOrder> orders= new ArrayList<>();
+    private final List<LimitOrder> orders = new ArrayList<>();
     private final ExecutionClient executionClient;
 
     public LimitOrderAgent(final ExecutionClient ec) {
@@ -55,23 +55,33 @@ public class LimitOrderAgent implements PriceListener {
 
     @Override
     public void priceTick(String productId, BigDecimal currentPrice) throws ExecutionClient.ExecutionException {
-        for (LimitOrder order : orders) {
-            if (order.getProductId().equals(productId)) {
-                if (order.isBuy() && currentPrice.compareTo(order.getLimitPrice()) <= 0) {
-                    executeOrder(order);
-                } else if (!order.isBuy() && currentPrice.compareTo(order.getLimitPrice()) >= 0) {
-                    executeOrder(order);
+        try {
+            for (LimitOrder order : orders) {
+                if (order.getProductId().equals(productId)) {
+                    if (order.isBuy() && currentPrice.compareTo(order.getLimitPrice()) <= 0) {
+                        executeOrder(order);
+                    } else if (!order.isBuy() && currentPrice.compareTo(order.getLimitPrice()) >= 0) {
+                        executeOrder(order);
 
+                    }
                 }
             }
+        } catch (ExecutionClient.ExecutionException e) {
+            // Handle any exception that occurs inside the priceTick method
+            System.err.println("Error processing price tick for product: " + productId);
+            e.printStackTrace();
         }
     }
 
     private void executeOrder(LimitOrder order) throws ExecutionClient.ExecutionException {
-        if (order.isBuy()) {
-            executionClient.buy(order.getProductId(), order.getAmount());
-        } else {
-            executionClient.sell(order.getProductId(), order.getAmount());
+        try {
+            if (order.isBuy()) {
+                executionClient.buy(order.getProductId(), order.getAmount());
+            } else {
+                executionClient.sell(order.getProductId(), order.getAmount());
+            }
+        } catch (ExecutionClient.ExecutionException e) {
+            System.err.println("Failed to execute order for product: " + order.getProductId() + " due to: " + e.getMessage());
         }
     }
 
